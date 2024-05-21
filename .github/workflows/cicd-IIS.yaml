@@ -1,0 +1,49 @@
+name: .NET CI/CD Pipeline to IIS
+
+on:
+  push:
+    branches:
+      - main
+      - feature/*
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v2
+
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '7.0'
+
+    - name: Restore dependencies
+      run: dotnet restore
+      working-directory: ./clean-structured-project 
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+      working-directory: ./clean-structured-project 
+
+    - name: Test
+      run: dotnet test --no-build --verbosity normal
+      working-directory: ./clean-structured-project 
+
+    - name: Publish
+      run: dotnet publish --configuration Release --output ./publish
+      working-directory: ./clean-structured-project
+
+    - name: Deploy to IIS
+      uses: SamKirkland/FTP-Deploy-Action@4.0.0
+      with:
+        server: ${{ secrets.SERVER_ADDRESS }}
+        username: ${{ secrets.SERVER_USERNAME }}
+        password: ${{ secrets.SERVER_PASSWORD }}
+        local-dir: ./project02/clean-structured-project/publiash
+        server-dir: 'C:\inetpub\wwwroot'
